@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro</title>
+  <title>NA2625 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- PDF -->
@@ -12,11 +12,10 @@
 
 <!-- LOGIN -->
 <div id="auth" class="flex items-center justify-center h-screen">
-  <div class="bg-[#1f2937] p-6 rounded w-80 text-center">
+  <div class="bg-[#1f2937] p-8 rounded w-96 text-center">
 
-    <!-- LOGO -->
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mx-auto mb-5 h-12">
+      class="mx-auto mb-6 w-40">
 
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
@@ -31,14 +30,13 @@
 <div id="app" class="hidden flex min-h-screen">
 
   <!-- SIDEBAR -->
-  <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col">
+  <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col items-center">
 
-    <!-- LOGO -->
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mb-8 h-10">
+      class="mb-8 w-36">
 
     <button onclick="logout()"
-      class="mt-auto text-left p-2 hover:bg-red-500 rounded">
+      class="mt-auto w-full text-left p-2 hover:bg-red-500 rounded">
       Logout
     </button>
   </div>
@@ -46,9 +44,9 @@
   <!-- MAIN -->
   <div class="flex-1 p-6 space-y-6">
 
-    <!-- TOP BAR -->
+    <!-- TOP -->
     <div class="flex justify-between items-center">
-      <h1 id="title" class="text-2xl font-bold"></h1>
+      <h1 id="title" class="text-xl font-semibold"></h1>
 
       <div class="flex gap-2">
 
@@ -68,7 +66,7 @@
         </select>
 
         <button onclick="exportPDF()"
-          class="bg-blue-500 px-3 rounded">
+          class="bg-blue-500 px-4 rounded">
           Export PDF
         </button>
 
@@ -93,9 +91,6 @@
 
       <input id="amount" type="number"
         placeholder="Amount"
-        class="w-full p-2 text-black rounded">
-
-      <input id="dateInput" type="datetime-local"
         class="w-full p-2 text-black rounded">
 
       <div class="grid grid-cols-2 gap-2">
@@ -181,17 +176,19 @@ function convert(n){
   return currentCurrency==="IDR"?n:n/rate;
 }
 
-// CHANGE CURRENCY
+// CHANGE
 function changeCurrency(){
   currentCurrency=currency.value;
   localStorage.setItem("currency",currentCurrency);
   loadData();
 }
 
-// ADD
+// ADD (AUTO LOCAL TIME)
 async function addData(){
   let raw=Number(amount.value);
   let stored=currentCurrency==="USD"?raw*rate:raw;
+
+  let localDate = new Date().toISOString(); // auto
 
   await fetch(API,{
     method:"POST",
@@ -200,7 +197,7 @@ async function addData(){
       category:category.value,
       amount:stored,
       type:type.value,
-      date:dateInput.value||new Date().toISOString()
+      date:localDate
     })
   });
 
@@ -216,14 +213,8 @@ function applyFilter(data){
     let t=new Date(d.date);
 
     if(f==="day") return t.toDateString()===now.toDateString();
-
     if(f==="week") return (now-t)/(1000*60*60*24)<=7;
-
-    if(f==="month"){
-      return t.getMonth()===now.getMonth() &&
-             t.getFullYear()===now.getFullYear();
-    }
-
+    if(f==="month") return t.getMonth()===now.getMonth() && t.getFullYear()===now.getFullYear();
     if(f==="year") return t.getFullYear()===now.getFullYear();
 
     return true;
@@ -270,22 +261,30 @@ function calc(data){
   expense.innerText=format(e);
 }
 
-// EXPORT PDF
+// PDF EXPORT (PRO)
 function exportPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  doc.text("Cashflow Report", 10, 10);
+  doc.setFontSize(16);
+  doc.text("Cashflow Report", 10, 15);
 
-  let y=20;
+  doc.setFontSize(10);
+  doc.text("NA2625 CREATIVEWORKS", 10, 22);
+
+  let y=35;
 
   currentData.forEach(d=>{
     let line = `${d.category} | ${d.type} | ${format(convert(d.amount))}`;
     doc.text(line,10,y);
-    y+=8;
+    y+=7;
   });
 
-  doc.save("cashflow.pdf");
+  y+=10;
+
+  doc.text("Total Balance: "+balance.innerText,10,y);
+
+  doc.save("NA2625-report.pdf");
 }
 
 startApp();
