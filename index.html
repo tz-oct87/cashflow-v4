@@ -15,7 +15,7 @@
   <div class="bg-[#1f2937] p-8 rounded w-96 text-center">
 
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mx-auto mb-6 w-40">
+      class="mx-auto mb-6 w-full max-h-24 object-contain">
 
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
@@ -33,7 +33,7 @@
   <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col items-center">
 
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mb-8 w-36">
+      class="mb-8 w-full max-h-20 object-contain">
 
     <button onclick="logout()"
       class="mt-auto w-full text-left p-2 hover:bg-red-500 rounded">
@@ -49,9 +49,7 @@
       <h1 id="title" class="text-xl font-semibold"></h1>
 
       <div class="flex gap-2">
-
-        <select id="filter" onchange="loadData()"
-          class="bg-[#1f2937] p-2 rounded">
+        <select id="filter" onchange="loadData()" class="bg-[#1f2937] p-2 rounded">
           <option value="all">All</option>
           <option value="day">Today</option>
           <option value="week">7 Days</option>
@@ -59,36 +57,26 @@
           <option value="year">Year</option>
         </select>
 
-        <select id="currency" onchange="changeCurrency()"
-          class="bg-[#1f2937] p-2 rounded">
+        <select id="currency" onchange="changeCurrency()" class="bg-[#1f2937] p-2 rounded">
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
 
-        <button onclick="exportPDF()"
-          class="bg-blue-500 px-4 rounded">
+        <button onclick="exportPDF()" class="bg-blue-500 px-4 rounded">
           Export PDF
         </button>
-
       </div>
     </div>
 
     <!-- STATS -->
     <div class="grid grid-cols-3 gap-4">
-      <div class="bg-[#1f2937] p-4 rounded">
-        Balance<br><b id="balance"></b>
-      </div>
-      <div class="bg-[#1f2937] p-4 rounded">
-        Income<br><b id="income"></b>
-      </div>
-      <div class="bg-[#1f2937] p-4 rounded">
-        Expense<br><b id="expense"></b>
-      </div>
+      <div class="bg-[#1f2937] p-4 rounded">Balance<br><b id="balance"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Income<br><b id="income"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Expense<br><b id="expense"></b></div>
     </div>
 
     <!-- FORM -->
     <div class="bg-[#1f2937] p-4 rounded space-y-3">
-
       <input id="amount" type="number"
         placeholder="Amount"
         class="w-full p-2 text-black rounded">
@@ -183,12 +171,10 @@ function changeCurrency(){
   loadData();
 }
 
-// ADD (AUTO LOCAL TIME)
+// ADD
 async function addData(){
   let raw=Number(amount.value);
   let stored=currentCurrency==="USD"?raw*rate:raw;
-
-  let localDate = new Date().toISOString(); // auto
 
   await fetch(API,{
     method:"POST",
@@ -197,7 +183,7 @@ async function addData(){
       category:category.value,
       amount:stored,
       type:type.value,
-      date:localDate
+      date:new Date().toISOString()
     })
   });
 
@@ -261,30 +247,44 @@ function calc(data){
   expense.innerText=format(e);
 }
 
-// PDF EXPORT (PRO)
+// PROFESSIONAL PDF
 function exportPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  doc.setFontSize(16);
-  doc.text("Cashflow Report", 10, 15);
+  // LOGO
+  doc.addImage("https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png","PNG",60,5,90,20);
+
+  doc.setFontSize(14);
+  doc.text("FINANCIAL STATEMENT", 105, 35, null, null, "center");
 
   doc.setFontSize(10);
-  doc.text("NA2625 CREATIVEWORKS", 10, 22);
+  doc.text("NA2625 CREATIVEWORKS", 105, 42, null, null, "center");
 
-  let y=35;
+  let y=55;
+
+  // HEADER
+  doc.setFontSize(10);
+  doc.text("Date",10,y);
+  doc.text("Category",50,y);
+  doc.text("Type",110,y);
+  doc.text("Amount",160,y);
+
+  y+=5;
 
   currentData.forEach(d=>{
-    let line = `${d.category} | ${d.type} | ${format(convert(d.amount))}`;
-    doc.text(line,10,y);
-    y+=7;
+    doc.text(new Date(d.date).toLocaleDateString(),10,y);
+    doc.text(d.category,50,y);
+    doc.text(d.type,110,y);
+    doc.text(format(convert(d.amount)),160,y);
+    y+=6;
   });
 
   y+=10;
 
   doc.text("Total Balance: "+balance.innerText,10,y);
 
-  doc.save("NA2625-report.pdf");
+  doc.save("NA2625-statement.pdf");
 }
 
 startApp();
