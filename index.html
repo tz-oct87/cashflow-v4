@@ -4,7 +4,6 @@
   <title>NA2625 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
@@ -15,7 +14,7 @@
   <div class="bg-[#1f2937] p-8 rounded w-96 text-center">
 
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mx-auto mb-6 w-full max-h-24 object-contain">
+      class="mx-auto mb-6 w-full max-h-28 object-contain">
 
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
@@ -33,10 +32,9 @@
   <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col items-center">
 
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mb-8 w-full max-h-20 object-contain">
+      class="mb-8 w-full max-h-24 object-contain">
 
-    <button onclick="logout()"
-      class="mt-auto w-full text-left p-2 hover:bg-red-500 rounded">
+    <button onclick="logout()" class="mt-auto w-full text-left p-2 hover:bg-red-500 rounded">
       Logout
     </button>
   </div>
@@ -75,10 +73,17 @@
       <div class="bg-[#1f2937] p-4 rounded">Expense<br><b id="expense"></b></div>
     </div>
 
+    <!-- INSIGHTS -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-[#1f2937] p-4 rounded">Top Category<br><b id="topCat"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Transactions<br><b id="totalTx"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Avg Spend<br><b id="avgSpend"></b></div>
+    </div>
+
     <!-- FORM -->
-    <div class="bg-[#1f2937] p-4 rounded space-y-3">
-      <input id="amount" type="number"
-        placeholder="Amount"
+    <div id="formBox" class="bg-[#1f2937] p-4 rounded space-y-3">
+
+      <input id="amount" type="number" placeholder="Amount"
         class="w-full p-2 text-black rounded">
 
       <div class="grid grid-cols-2 gap-2">
@@ -96,15 +101,21 @@
         </select>
       </div>
 
-      <button onclick="addData()"
-        class="w-full bg-green-500 p-2 rounded hover:opacity-80">
-        Save Transaction
+      <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
+        Submit
+      </button>
+    </div>
+
+    <!-- ADD AGAIN BUTTON -->
+    <div id="addAgainBox" class="hidden">
+      <button onclick="showForm()" class="bg-green-500 px-4 py-2 rounded">
+        + Add Another
       </button>
     </div>
 
     <!-- LIST -->
     <div class="bg-[#1f2937] p-4 rounded">
-      <div id="list" class="space-y-2"></div>
+      <div id="list"></div>
     </div>
 
   </div>
@@ -187,7 +198,15 @@ async function addData(){
     })
   });
 
+  formBox.classList.add("hidden");
+  addAgainBox.classList.remove("hidden");
+
   loadData();
+}
+
+function showForm(){
+  formBox.classList.remove("hidden");
+  addAgainBox.classList.add("hidden");
 }
 
 // FILTER
@@ -219,52 +238,63 @@ async function loadData(){
 
   list.innerHTML=data.map(d=>`
     <div class="flex justify-between border-b border-gray-700 py-2">
-      <div>
-        ${d.category}<br>
-        <small>${new Date(d.date).toLocaleString()}</small>
-      </div>
-      <div class="${d.type==='income'?'text-green-400':'text-red-400'}">
-        ${d.type==='income'?'+':'-'} ${format(convert(d.amount))}
-      </div>
+      <div>${d.category}<br><small>${new Date(d.date).toLocaleString()}</small></div>
+      <div>${d.type==='income'?'+':'-'} ${format(convert(d.amount))}</div>
     </div>
   `).join("");
 
   calc(data);
+  insights(data);
 }
 
 // CALC
 function calc(data){
   let t=0,i=0,e=0;
-
   data.forEach(d=>{
     let v=convert(d.amount);
-    if(d.type==="income"){t+=v;i+=v;}
-    else{t-=v;e+=v;}
+    if(d.type==="income"){t+=v;i+=v;} else{t-=v;e+=v;}
   });
-
   balance.innerText=format(t);
   income.innerText=format(i);
   expense.innerText=format(e);
 }
 
-// PROFESSIONAL PDF
+// INSIGHTS
+function insights(data){
+  let catMap={}, total=0;
+
+  data.forEach(d=>{
+    if(d.type==="expense"){
+      let v=convert(d.amount);
+      catMap[d.category]=(catMap[d.category]||0)+v;
+      total+=v;
+    }
+  });
+
+  let top=Object.keys(catMap).reduce((a,b)=>catMap[a]>catMap[b]?a:b,"-");
+
+  topCat.innerText=top;
+  totalTx.innerText=data.length;
+  avgSpend.innerText=format(total/(data.length||1));
+}
+
+// PDF
 function exportPDF(){
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc=new jsPDF();
 
-  // LOGO
+  let user=localStorage.getItem("email");
+
   doc.addImage("https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png","PNG",60,5,90,20);
 
   doc.setFontSize(14);
-  doc.text("FINANCIAL STATEMENT", 105, 35, null, null, "center");
+  doc.text("FINANCIAL STATEMENT",105,35,null,null,"center");
 
   doc.setFontSize(10);
-  doc.text("NA2625 CREATIVEWORKS", 105, 42, null, null, "center");
+  doc.text("User: "+user,10,45);
 
   let y=55;
 
-  // HEADER
-  doc.setFontSize(10);
   doc.text("Date",10,y);
   doc.text("Category",50,y);
   doc.text("Type",110,y);
@@ -282,7 +312,9 @@ function exportPDF(){
 
   y+=10;
 
-  doc.text("Total Balance: "+balance.innerText,10,y);
+  doc.text("Balance: "+balance.innerText,10,y);
+  doc.text("Income: "+income.innerText,10,y+6);
+  doc.text("Expense: "+expense.innerText,10,y+12);
 
   doc.save("NA2625-statement.pdf");
 }
