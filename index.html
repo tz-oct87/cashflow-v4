@@ -1,33 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V6</title>
+  <title>Cashflow Pro V7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="bg-[#0f172a] text-gray-200">
+<body class="bg-[#0b1220] text-gray-200">
 
-<div class="max-w-5xl mx-auto p-6 space-y-6">
+<div class="flex min-h-screen">
 
-  <!-- LOGIN -->
-  <div id="auth" class="bg-[#1e293b] p-6 rounded-xl max-w-sm mx-auto">
-    <input id="email" placeholder="Your name"
-      class="w-full p-2 text-black rounded mb-3">
-    <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
-      Enter
-    </button>
+  <!-- SIDEBAR -->
+  <div class="w-64 bg-[#111827] p-5 hidden md:block">
+    <h2 class="text-xl font-bold mb-6">Cashflow</h2>
+
+    <div class="space-y-2 text-sm">
+      <div class="p-2 bg-[#1f2937] rounded">Dashboard</div>
+      <button onclick="logout()" class="p-2 w-full text-left hover:bg-red-500 rounded">
+        Logout
+      </button>
+    </div>
   </div>
 
-  <!-- APP -->
-  <div id="app" class="hidden space-y-6">
+  <!-- MAIN -->
+  <div class="flex-1 p-6 space-y-6">
 
-    <!-- HEADER -->
+    <!-- TOP BAR -->
     <div class="flex justify-between items-center">
       <h1 id="title" class="text-2xl font-bold"></h1>
 
       <div class="flex gap-3">
-        <select id="filter" onchange="loadData()" class="bg-[#1e293b] p-2 rounded">
+        <select id="filter" onchange="loadData()" class="bg-[#1f2937] p-2 rounded">
           <option value="all">All</option>
           <option value="day">Today</option>
           <option value="week">Week</option>
@@ -35,127 +38,101 @@
           <option value="year">Year</option>
         </select>
 
-        <select id="currency" onchange="changeCurrency()" class="bg-[#1e293b] p-2 rounded">
+        <select id="currency" onchange="changeCurrency()" class="bg-[#1f2937] p-2 rounded">
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
-
-        <button onclick="logout()" class="bg-red-500 px-3 rounded">Logout</button>
       </div>
     </div>
 
     <!-- GRID -->
+    <div class="grid md:grid-cols-3 gap-4">
+
+      <div class="bg-[#1f2937] p-4 rounded">
+        Balance<br><b id="balance"></b>
+      </div>
+
+      <div class="bg-[#1f2937] p-4 rounded">
+        Income<br><b id="income"></b>
+      </div>
+
+      <div class="bg-[#1f2937] p-4 rounded">
+        Expense<br><b id="expense"></b>
+      </div>
+
+    </div>
+
+    <!-- MAIN CONTENT -->
     <div class="grid md:grid-cols-2 gap-6">
 
-      <!-- LEFT -->
-      <div class="space-y-4">
+      <!-- FORM -->
+      <div class="bg-[#1f2937] p-4 rounded space-y-2">
+        <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
+        <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
+        <input id="dateInput" type="datetime-local" class="w-full p-2 text-black rounded">
 
-        <!-- BALANCE -->
-        <div class="bg-[#1e293b] p-4 rounded-xl">
-          <div>Balance</div>
-          <div id="balance" class="text-2xl font-bold"></div>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="category" class="p-2 text-black rounded">
+            <option>Food</option>
+            <option>Gas</option>
+            <option>Bills</option>
+            <option>Salary</option>
+            <option>Other</option>
+          </select>
+
+          <select id="type" class="p-2 text-black rounded">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
         </div>
 
-        <!-- STATS -->
-        <div class="grid grid-cols-3 gap-2">
-          <div class="bg-[#1e293b] p-3 rounded">Income<br><b id="income"></b></div>
-          <div class="bg-[#1e293b] p-3 rounded">Expense<br><b id="expense"></b></div>
-          <div class="bg-[#1e293b] p-3 rounded">Net<br><b id="net"></b></div>
-        </div>
-
-        <!-- FORM -->
-        <div class="bg-[#1e293b] p-4 rounded-xl space-y-2">
-          <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
-          <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
-          
-          <input id="dateInput" type="datetime-local"
-            class="w-full p-2 text-black rounded">
-
-          <div class="grid grid-cols-2 gap-2">
-            <select id="category" class="p-2 text-black rounded">
-              <option>Food</option>
-              <option>Gas</option>
-              <option>Bills</option>
-              <option>Salary</option>
-              <option>Other</option>
-            </select>
-
-            <select id="type" class="p-2 text-black rounded">
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </select>
-          </div>
-
-          <button onclick="addData()" class="w-full bg-green-400 p-2 rounded">
-            Save
-          </button>
-        </div>
-
+        <button id="saveBtn" onclick="addData()"
+          class="w-full bg-green-500 p-2 rounded hover:opacity-80">
+          Save Transaction
+        </button>
       </div>
 
-      <!-- RIGHT -->
-      <div class="space-y-4">
-
-        <!-- CHART -->
-        <div class="bg-[#1e293b] p-4 rounded-xl">
-          <canvas id="trend"></canvas>
-        </div>
-
-        <!-- LIST -->
-        <div id="list" class="space-y-2 max-h-[400px] overflow-auto"></div>
-
+      <!-- CHART -->
+      <div class="bg-[#1f2937] p-4 rounded">
+        <canvas id="trend"></canvas>
       </div>
 
+    </div>
+
+    <!-- LIST -->
+    <div class="bg-[#1f2937] p-4 rounded">
+      <h3 class="mb-3">Transactions</h3>
+      <div id="list" class="space-y-2 max-h-[400px] overflow-auto"></div>
     </div>
 
   </div>
 </div>
 
-<!-- EDIT MODAL -->
-<div id="editModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
-  <div class="bg-[#1e293b] p-6 rounded-xl space-y-2 w-80">
-    <input id="editName" class="w-full p-2 text-black rounded">
-    <input id="editAmount" type="number" class="w-full p-2 text-black rounded">
-    <input id="editDate" type="datetime-local" class="w-full p-2 text-black rounded">
-
-    <button onclick="saveEdit()" class="bg-green-400 w-full p-2 rounded">Save</button>
-    <button onclick="closeEdit()" class="bg-gray-500 w-full p-2 rounded">Cancel</button>
-  </div>
-</div>
-
-<!-- DELETE MODAL -->
-<div id="confirmBox" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
-  <div class="bg-[#1e293b] p-6 rounded text-center">
-    Delete?
-    <button onclick="confirmDelete()" class="bg-red-500 px-3 ml-2">Yes</button>
-    <button onclick="closeConfirm()" class="bg-gray-500 px-3 ml-2">Cancel</button>
-  </div>
-</div>
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-5 right-5 bg-green-500 px-4 py-2 rounded"></div>
 
 <script>
 const API="https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
 
 let rate=15500,currentCurrency="IDR";
-let editTarget=null,deleteTarget=null,chart;
-
-// LOGIN
-function login(){localStorage.setItem("email",email.value);init();}
-function logout(){localStorage.clear();location.reload();}
+let isSubmitting=false,chart;
 
 // INIT
 async function init(){
-  if(!localStorage.getItem("email"))return;
-  currency.value=currentCurrency;
+  title.innerText=localStorage.getItem("email");
 
   let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
   let d=await res.json();
   rate=d.rates.IDR;
 
-  auth.style.display="none";
-  app.style.display="block";
-  title.innerText=localStorage.getItem("email");
-
   loadData();
+}
+
+// TOAST
+function showToast(msg){
+  toast.innerText=msg;
+  toast.classList.remove("hidden");
+  setTimeout(()=>toast.classList.add("hidden"),2000);
 }
 
 // FORMAT
@@ -169,9 +146,12 @@ function convert(n){return currentCurrency==="IDR"?n:n/rate;}
 
 // ADD
 async function addData(){
+  if(isSubmitting) return;
+  isSubmitting=true;
+  saveBtn.innerText="Saving...";
+
   let raw=Number(amount.value);
   let stored=currentCurrency==="USD"?raw*rate:raw;
-  let date=dateInput.value||new Date().toISOString();
 
   await fetch(API,{
     method:"POST",
@@ -181,99 +161,32 @@ async function addData(){
       category:category.value,
       amount:stored,
       type:type.value,
-      date,
+      date:dateInput.value||new Date().toISOString(),
       display:format(raw)
     })
   });
 
+  showToast("Saved!");
+  isSubmitting=false;
+  saveBtn.innerText="Save Transaction";
+
   loadData();
-}
-
-// FILTER
-function filterData(data){
-  let f=filter.value;
-  let now=new Date();
-
-  return data.filter(d=>{
-    let t=new Date(d.date);
-
-    if(f==="day") return t.toDateString()===now.toDateString();
-    if(f==="week") return (now-t)<=7*86400000;
-    if(f==="month") return t.getMonth()===now.getMonth();
-    if(f==="year") return t.getFullYear()===now.getFullYear();
-
-    return true;
-  });
 }
 
 // LOAD
 async function loadData(){
   let res=await fetch(API+"?email="+localStorage.getItem("email"));
   let data=await res.json();
-  data=filterData(data);
 
   list.innerHTML=data.map(d=>`
-    <div class="bg-[#1e293b] p-2 rounded flex justify-between">
+    <div class="flex justify-between border-b border-gray-700 pb-1">
       <div>${d.category}<br><small>${new Date(d.date).toLocaleString()}</small></div>
-      <div>
-        ${d.display}
-        <button onclick='openEdit(${JSON.stringify(d)})'>Edit</button>
-        <button onclick='del("${d.date}")'>Del</button>
-      </div>
+      <div>${d.display}</div>
     </div>
   `).join("");
 
   calc(data);
-  chartRender(data);
-}
-
-// EDIT MODAL
-function openEdit(d){
-  editTarget=d;
-  editName.value=d.name;
-  editAmount.value=d.amount;
-  editDate.value=d.date.slice(0,16);
-  editModal.classList.remove("hidden");
-}
-
-function closeEdit(){editModal.classList.add("hidden");}
-
-async function saveEdit(){
-  let raw=Number(editAmount.value);
-  let stored=currentCurrency==="USD"?raw*rate:raw;
-
-  await fetch(API,{
-    method:"POST",
-    body:JSON.stringify({
-      action:"edit",
-      email:localStorage.getItem("email"),
-      name:editName.value,
-      category:editTarget.category,
-      amount:stored,
-      type:editTarget.type,
-      date:editTarget.date,
-      display:format(raw)
-    })
-  });
-
-  closeEdit();
-  loadData();
-}
-
-// DELETE
-function del(d){deleteTarget=d;confirmBox.classList.remove("hidden");}
-function closeConfirm(){confirmBox.classList.add("hidden");}
-
-async function confirmDelete(){
-  await fetch(API,{
-    method:"POST",
-    body:JSON.stringify({
-      action:"delete",
-      email:localStorage.getItem("email"),
-      date:deleteTarget
-    })
-  });
-  closeConfirm();loadData();
+  renderChart(data);
 }
 
 // CALC
@@ -286,33 +199,33 @@ function calc(data){
   balance.innerText=format(t);
   income.innerText=format(i);
   expense.innerText=format(e);
-  net.innerText=format(t);
 }
 
 // CHART
-function chartRender(data){
-  let inc={},exp={};
+function renderChart(data){
+  let map={};
 
   data.forEach(d=>{
     let day=d.date.split("T")[0];
-    let v=convert(d.amount);
-    if(d.type==="income") inc[day]=(inc[day]||0)+v;
-    else exp[day]=(exp[day]||0)+v;
+    map[day]=(map[day]||0)+(d.type==="income"?convert(d.amount):-convert(d.amount));
   });
 
-  let labels=[...new Set([...Object.keys(inc),...Object.keys(exp)])];
+  let labels=Object.keys(map);
 
   if(chart) chart.destroy();
+
   chart=new Chart(trend,{
     type:"line",
     data:{
       labels,
-      datasets:[
-        {label:"Income",data:labels.map(l=>inc[l]||0)},
-        {label:"Expense",data:labels.map(l=>exp[l]||0)}
-      ]
+      datasets:[{data:Object.values(map)}]
     }
   });
+}
+
+function logout(){
+  localStorage.clear();
+  location.reload();
 }
 
 init();
