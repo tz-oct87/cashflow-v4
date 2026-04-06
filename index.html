@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cashflow Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<div class="max-w-md mx-auto p-4">
+
+  <!-- LOGIN -->
+  <div id="auth" class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-lg font-semibold mb-4">Cashflow Login</h2>
+    <input id="email" placeholder="Your name"
+      class="w-full border p-2 rounded mb-3">
+    <button onclick="login()"
+      class="w-full bg-black text-white p-2 rounded">
+      Continue
+    </button>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden space-y-4">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center">
+      <h1 id="title" class="text-lg font-semibold"></h1>
+      <button onclick="logout()" class="text-sm text-gray-500">Logout</button>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="bg-white p-4 rounded-xl shadow">
+      <div class="text-sm text-gray-500">Total Balance</div>
+      <div id="balance" class="text-2xl font-bold mt-1">0</div>
+    </div>
+
+    <!-- FORM -->
+    <div class="bg-white p-4 rounded-xl shadow space-y-2">
+      <input id="name" placeholder="Cashflow Name"
+        class="w-full border p-2 rounded">
+
+      <input id="amount" type="number" placeholder="Amount"
+        class="w-full border p-2 rounded">
+
+      <div class="grid grid-cols-2 gap-2">
+        <select id="category" class="border p-2 rounded">
+          <option>Food</option>
+          <option>Gas</option>
+          <option>Bills</option>
+          <option>Salary</option>
+          <option>Other</option>
+        </select>
+
+        <select id="type" class="border p-2 rounded">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+
+      <button onclick="addData()"
+        class="w-full bg-black text-white p-2 rounded">
+        Add Transaction
+      </button>
+    </div>
+
+    <!-- CHART -->
+    <div class="bg-white p-4 rounded-xl shadow">
+      <div class="text-sm text-gray-500 mb-2">Cashflow Trend</div>
+      <canvas id="trend"></canvas>
+    </div>
+
+    <!-- LIST -->
+    <div class="space-y-2" id="list"></div>
+
+  </div>
+
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbyBDvRCOUunIKsmhKL1k_kpHVC1778i6GVQct4-OM2B5oalyywjZfx-eUlPWkf9cvMo/exec";
+let editTarget = null;
+let chart;
+
+// LOGIN
+function login(){
+  localStorage.setItem("email", email.value);
+  init();
+}
+
+function logout(){
+  localStorage.removeItem("email");
+  location.reload();
+}
+
+// INIT
+function init(){
+  const user = localStorage.getItem("email");
+  if(!user) return;
+
+  auth.style.display="none";
+  app.style.display="block";
+  title.innerText = user;
+
+  loadData();
+}
+
+// FORMAT MONEY (IMPORTANT)
+function format(num){
+  return "Rp " + num.toLocaleString("id-ID");
+}
+
+// ADD / EDIT
+async function addData(){
+  const payload = {
+    email: localStorage.getItem("email"),
+    name: name.value,
+    category: category.value,
+    amount: Number(amount.value),
+    type: type.value,
+    date: editTarget || new Date().toISOString(),
+    action: editTarget ? "edit" : "add"
+  };
+
+  await fetch(API, {
+    method:"POST",
+    body: JSON.stringify(payload)
+  });
+
+  editTarget = null;
+  loadData();
+}
+
+// DELETE
+async function del(date){
+  await fetch(API, {
+    method:"POST",
+    body: JSON.stringify({
+      action:"delete",
+      email: localStorage.getItem("email"),
+      date
+    })
+  });
+
+  loadData();
+}
+
+// EDIT
+function edit(d){
+  name.value = d.name;
+  category.value = d.category;
+  amount.value = d.amount;
+  type.value = d.type;
+  editTarget = d.date;
+}
+
+// LOAD
+async function loadData(){
+  const res = await fetch(API + "?email=" + localStorage.getItem("email"));
+  const data = await res.json();
+
+  // LIST
+  list.innerHTML = data.map(d => `
+    <div class="bg-white p-3 rounded-xl shadow flex justify-between items-center">
+      <div>
+        <div class="font-medium">${d.category}</div>
+        <div class="text-xs text-gray-500">${new Date(d.date).toLocaleDateString()}</div>
+      </div>
+      <div class="text-right">
+        <div class="${d.type==='income'?'text-green-600':'text-red-500'} font-semibold">
+          ${d.type==='income'?'+':'-'} ${format(d.amount)}
+        </div>
+        <div class="text-xs">
+          <button onclick='edit(${JSON.stringify(d)})'>Edit</button> |
+          <button onclick='del("${d.date}")'>Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  calcBalance(data);
+  renderTrend(data);
+}
+
+// BALANCE
+function calcBalance(data){
+  let total = 0;
+
+  data.forEach(d=>{
+    total += d.type === "income" ? d.amount : -d.amount;
+  });
+
+  balance.innerText = format(total);
+}
+
+// TREND CHART
+function renderTrend(data){
+  let daily = {};
+
+  data.forEach(d=>{
+    let day = d.date.split("T")[0];
+
+    daily[day] = (daily[day] || 0) +
+      (d.type === "income" ? d.amount : -d.amount);
+  });
+
+  const labels = Object.keys(daily);
+  const values = Object.values(daily);
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("trend"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data: values
+      }]
+    }
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
