@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V5</title>
+  <title>Cashflow Pro V5.1</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -11,10 +11,9 @@
 <div class="max-w-md mx-auto p-4 space-y-4">
 
   <!-- LOGIN -->
-  <div id="auth" class="bg-[#1e293b] p-6 rounded-xl border border-gray-800">
-    <h2 class="text-lg font-semibold mb-4">Cashflow</h2>
+  <div id="auth" class="bg-[#1e293b] p-6 rounded-xl">
     <input id="email" placeholder="Your name"
-      class="w-full p-2 rounded text-black mb-3">
+      class="w-full p-2 text-black rounded mb-3">
     <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
       Enter
     </button>
@@ -25,44 +24,40 @@
 
     <!-- HEADER -->
     <div class="flex justify-between items-center">
-      <h1 id="title" class="text-lg font-semibold"></h1>
+      <h1 id="title"></h1>
 
-      <div class="flex gap-2 items-center">
+      <div class="flex gap-2">
         <select id="currency" onchange="changeCurrency()"
-          class="bg-[#1e293b] border border-gray-700 p-2 rounded text-sm">
+          class="bg-[#1e293b] p-2 rounded">
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
 
-        <button onclick="logout()" 
-          class="text-xs bg-red-500 px-2 py-1 rounded">
+        <button onclick="logout()" class="bg-red-500 px-2 rounded text-xs">
           Logout
         </button>
       </div>
     </div>
 
     <!-- BALANCE -->
-    <div class="bg-[#1e293b] p-4 rounded-xl border border-gray-800">
-      <div class="text-sm text-gray-400">Balance</div>
-      <div id="balance" class="text-2xl font-bold"></div>
+    <div class="bg-[#1e293b] p-4 rounded">
+      Balance: <b id="balance"></b>
     </div>
 
     <!-- STATS -->
-    <div class="grid grid-cols-3 gap-2 text-sm">
-      <div class="bg-[#1e293b] p-3 rounded">Income<br><b id="income"></b></div>
-      <div class="bg-[#1e293b] p-3 rounded">Expense<br><b id="expense"></b></div>
-      <div class="bg-[#1e293b] p-3 rounded">Net<br><b id="net"></b></div>
+    <div class="grid grid-cols-3 gap-2">
+      <div>Income<br><b id="income"></b></div>
+      <div>Expense<br><b id="expense"></b></div>
+      <div>Net<br><b id="net"></b></div>
     </div>
 
     <!-- FORM -->
-    <div class="bg-[#1e293b] p-4 rounded-xl space-y-2">
-      <input id="name" placeholder="Cashflow Name"
-        class="w-full p-2 rounded text-black">
-      <input id="amount" type="number" placeholder="Amount"
-        class="w-full p-2 rounded text-black">
+    <div class="bg-[#1e293b] p-3 rounded space-y-2">
+      <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
+      <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
 
       <div class="grid grid-cols-2 gap-2">
-        <select id="category" class="p-2 rounded text-black">
+        <select id="category" class="p-2 text-black rounded">
           <option>Food</option>
           <option>Gas</option>
           <option>Bills</option>
@@ -70,48 +65,44 @@
           <option>Other</option>
         </select>
 
-        <select id="type" class="p-2 rounded text-black">
+        <select id="type" class="p-2 text-black rounded">
           <option value="expense">Expense</option>
           <option value="income">Income</option>
         </select>
       </div>
 
-      <button onclick="addData()"
-        class="w-full bg-green-400 text-black p-2 rounded">
-        Save Transaction
+      <button onclick="addData()" class="w-full bg-green-400 p-2 rounded">
+        Save
       </button>
     </div>
 
     <!-- CHART -->
-    <div class="bg-[#1e293b] p-4 rounded-xl">
-      <canvas id="trend"></canvas>
-    </div>
+    <canvas id="trend"></canvas>
 
     <!-- LIST -->
-    <div id="list" class="space-y-2"></div>
+    <div id="list"></div>
 
   </div>
-
 </div>
 
 <!-- DELETE MODAL -->
 <div id="confirmBox" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
-  <div class="bg-[#1e293b] p-6 rounded-xl text-center space-y-4">
-    <div>Delete this transaction?</div>
-    <div class="flex gap-2 justify-center">
-      <button onclick="confirmDelete()" class="bg-red-500 px-4 py-1 rounded">Yes</button>
-      <button onclick="closeConfirm()" class="bg-gray-500 px-4 py-1 rounded">Cancel</button>
-    </div>
+  <div class="bg-[#1e293b] p-6 rounded text-center">
+    <p>Delete this transaction?</p>
+    <button onclick="confirmDelete()" class="bg-red-500 px-3 py-1 mt-2">Yes</button>
+    <button onclick="closeConfirm()" class="bg-gray-500 px-3 py-1 mt-2">Cancel</button>
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyBDvRCOUunIKsmhKL1k_kpHVC1778i6GVQct4-OM2B5oalyywjZfx-eUlPWkf9cvMo/exec";
+const API = "https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
 
-let chart, editTarget=null, deleteTarget=null;
-let isSubmitting=false;
 let currentCurrency = localStorage.getItem("currency") || "IDR";
 let rate = 15500;
+let isSubmitting = false;
+let editTarget = null;
+let deleteTarget = null;
+let chart;
 
 // LOGIN
 function login(){
@@ -119,7 +110,6 @@ function login(){
   init();
 }
 
-// LOGOUT
 function logout(){
   localStorage.removeItem("email");
   location.reload();
@@ -133,7 +123,7 @@ async function init(){
   currency.value = currentCurrency;
 
   await getRate();
-  setInterval(getRate, 3600000); // refresh every 1h
+  setInterval(getRate, 3600000);
 
   auth.style.display="none";
   app.style.display="block";
@@ -148,16 +138,7 @@ async function getRate(){
     const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
     const data = await res.json();
     rate = data.rates.IDR;
-  }catch(e){
-    console.log("rate fallback");
-  }
-}
-
-// CHANGE CURRENCY
-function changeCurrency(){
-  currentCurrency = currency.value;
-  localStorage.setItem("currency", currentCurrency);
-  loadData();
+  }catch(e){}
 }
 
 // FORMAT
@@ -167,47 +148,57 @@ function format(num){
     : "$" + Math.round(num).toLocaleString("en-US");
 }
 
-// CONVERT
+// CONVERT FROM IDR BASE
 function convert(amount){
   return currentCurrency==="IDR"
     ? amount
     : amount / rate;
 }
 
-// ADD / EDIT
+// CHANGE CURRENCY
+function changeCurrency(){
+  currentCurrency = currency.value;
+  localStorage.setItem("currency", currentCurrency);
+  loadData();
+}
+
+// ADD
 async function addData(){
   if(isSubmitting) return;
-  isSubmitting=true;
+  isSubmitting = true;
+
+  let raw = Number(amount.value);
+
+  let stored = currentCurrency==="USD"
+    ? raw * rate
+    : raw;
 
   const payload = {
     email: localStorage.getItem("email"),
     name: name.value,
     category: category.value,
-    amount: Number(amount.value),
+    amount: stored,
     type: type.value,
     date: editTarget || new Date().toISOString(),
+    display: format(raw),
     action: editTarget ? "edit" : "add"
   };
 
-  await fetch(API,{
-    method:"POST",
-    body:JSON.stringify(payload)
-  });
+  await fetch(API,{method:"POST",body:JSON.stringify(payload)});
 
-  isSubmitting=false;
-  editTarget=null;
+  isSubmitting = false;
+  editTarget = null;
   loadData();
 }
 
 // DELETE FLOW
 function del(date){
-  deleteTarget=date;
+  deleteTarget = date;
   confirmBox.classList.remove("hidden");
 }
 
 function closeConfirm(){
   confirmBox.classList.add("hidden");
-  deleteTarget=null;
 }
 
 async function confirmDelete(){
@@ -226,11 +217,11 @@ async function confirmDelete(){
 
 // EDIT
 function edit(d){
-  name.value=d.name;
-  category.value=d.category;
-  amount.value=d.amount;
-  type.value=d.type;
-  editTarget=d.date;
+  name.value = d.name;
+  category.value = d.category;
+  amount.value = d.amount;
+  type.value = d.type;
+  editTarget = d.date;
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -240,27 +231,21 @@ async function loadData(){
   const data = await res.json();
 
   list.innerHTML = data.map(d=>`
-    <div class="bg-[#1e293b] p-3 rounded flex justify-between">
+    <div class="bg-[#1e293b] p-2 rounded flex justify-between">
       <div>
-        <div>${d.category}</div>
-        <div class="text-xs text-gray-400">
-          ${new Date(d.date).toLocaleString()}
-        </div>
+        ${d.category}<br>
+        <small>${new Date(d.date).toLocaleString()}</small>
       </div>
-      <div class="text-right">
-        <div class="${d.type==='income'?'text-green-400':'text-red-400'}">
-          ${d.type==='income'?'+':'-'} ${format(convert(d.amount))}
-        </div>
-        <div class="text-xs">
-          <button onclick='edit(${JSON.stringify(d)})'>Edit</button> |
-          <button onclick='del("${d.date}")'>Delete</button>
-        </div>
+      <div>
+        ${d.display || format(convert(d.amount))}<br>
+        <button onclick='edit(${JSON.stringify(d)})'>Edit</button>
+        <button onclick='del("${d.date}")'>Delete</button>
       </div>
     </div>
   `).join("");
 
   calc(data);
-  chartRender(data);
+  renderChart(data);
 }
 
 // CALC
@@ -270,11 +255,8 @@ function calc(data){
   data.forEach(d=>{
     let v=convert(d.amount);
 
-    if(d.type==="income"){
-      total+=v; inc+=v;
-    }else{
-      total-=v; exp+=v;
-    }
+    if(d.type==="income"){total+=v;inc+=v;}
+    else{total-=v;exp+=v;}
   });
 
   balance.innerText=format(total);
@@ -284,18 +266,15 @@ function calc(data){
 }
 
 // CHART
-function chartRender(data){
+function renderChart(data){
   let inc={},exp={};
 
   data.forEach(d=>{
     let day=d.date.split("T")[0];
     let v=convert(d.amount);
 
-    if(d.type==="income"){
-      inc[day]=(inc[day]||0)+v;
-    }else{
-      exp[day]=(exp[day]||0)+v;
-    }
+    if(d.type==="income") inc[day]=(inc[day]||0)+v;
+    else exp[day]=(exp[day]||0)+v;
   });
 
   const labels=[...new Set([...Object.keys(inc),...Object.keys(exp)])];
