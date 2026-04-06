@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V7.2</title>
+  <title>Cashflow Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- PDF LIB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body class="bg-[#0b1220] text-gray-200">
 
 <!-- LOGIN -->
 <div id="auth" class="flex items-center justify-center h-screen">
-  <div class="bg-[#1f2937] p-6 rounded w-80">
-    <h2 class="mb-3 text-lg font-bold">Login</h2>
+  <div class="bg-[#1f2937] p-6 rounded w-80 text-center">
+
+    <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
+      class="mx-auto mb-4 h-12">
+
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
+
     <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
       Enter
     </button>
@@ -25,7 +31,10 @@
 
   <!-- SIDEBAR -->
   <div class="w-64 bg-[#111827] p-5 hidden md:block">
-    <h2 class="text-xl font-bold mb-6">Cashflow</h2>
+
+    <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
+      class="mb-6 h-10">
+
     <button onclick="logout()" class="w-full text-left p-2 hover:bg-red-500 rounded">
       Logout
     </button>
@@ -35,10 +44,11 @@
   <div class="flex-1 p-6 space-y-6">
 
     <!-- TOP -->
-    <div class="flex justify-between">
+    <div class="flex justify-between items-center">
       <h1 id="title" class="text-2xl font-bold"></h1>
 
       <div class="flex gap-2">
+
         <select id="filter" onchange="loadData()" class="bg-[#1f2937] p-2 rounded">
           <option value="all">All</option>
           <option value="day">Today</option>
@@ -51,6 +61,12 @@
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
+
+        <button onclick="exportPDF()"
+          class="bg-blue-500 px-3 rounded">
+          Export PDF
+        </button>
+
       </div>
     </div>
 
@@ -63,9 +79,12 @@
 
     <!-- FORM -->
     <div class="bg-[#1f2937] p-4 rounded space-y-2">
-      <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
-      <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
-      <input id="dateInput" type="datetime-local" class="w-full p-2 text-black rounded">
+
+      <input id="amount" type="number" placeholder="Amount"
+        class="w-full p-2 text-black rounded">
+
+      <input id="dateInput" type="datetime-local"
+        class="w-full p-2 text-black rounded">
 
       <div class="grid grid-cols-2 gap-2">
         <select id="category" class="p-2 text-black rounded">
@@ -87,11 +106,6 @@
       </button>
     </div>
 
-    <!-- CHART -->
-    <div class="bg-[#1f2937] p-4 rounded">
-      <canvas id="trend"></canvas>
-    </div>
-
     <!-- LIST -->
     <div class="bg-[#1f2937] p-4 rounded">
       <div id="list"></div>
@@ -101,11 +115,11 @@
 </div>
 
 <script>
-const API="https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
+const API="https://script.google.com/macros/s/AKfycbzFqkTgUqbKflvUB-VnB5oNXDr-9Zjy6OlB-b1D7OfnV2fUfky8QTlKDzK10HDU7bNB/exec";
 
 let rate=15500;
 let currentCurrency=localStorage.getItem("currency")||"IDR";
-let chart;
+let currentData=[];
 
 // LOGIN
 function login(){
@@ -119,7 +133,7 @@ function logout(){
   location.reload();
 }
 
-// START APP
+// START
 async function startApp(){
   let user=localStorage.getItem("email");
 
@@ -149,7 +163,7 @@ function format(n){
     :"$"+Math.round(n);
 }
 
-// CONVERT FROM IDR BASE
+// CONVERT
 function convert(n){
   return currentCurrency==="IDR"?n:n/rate;
 }
@@ -170,7 +184,6 @@ async function addData(){
     method:"POST",
     body:JSON.stringify({
       email:localStorage.getItem("email"),
-      name:name.value,
       category:category.value,
       amount:stored,
       type:type.value,
@@ -214,11 +227,12 @@ async function loadData(){
   let data=await res.json();
 
   data=applyFilter(data);
-
   data.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
+  currentData=data;
+
   list.innerHTML=data.map(d=>`
-    <div class="flex justify-between border-b border-gray-700 pb-2">
+    <div class="flex justify-between border-b border-gray-700 py-2">
       <div>
         ${d.category}<br>
         <small>${new Date(d.date).toLocaleString()}</small>
@@ -230,7 +244,6 @@ async function loadData(){
   `).join("");
 
   calc(data);
-  chartRender(data);
 }
 
 // CALC
@@ -239,7 +252,6 @@ function calc(data){
 
   data.forEach(d=>{
     let v=convert(d.amount);
-
     if(d.type==="income"){t+=v;i+=v;}
     else{t-=v;e+=v;}
   });
@@ -249,28 +261,22 @@ function calc(data){
   expense.innerText=format(e);
 }
 
-// CHART
-function chartRender(data){
-  let map={};
+// EXPORT PDF
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  data.forEach(d=>{
-    let day=d.date.split("T")[0];
-    let v=convert(d.amount);
+  doc.text("Cashflow Report", 10, 10);
 
-    map[day]=(map[day]||0)+(d.type==="income"?v:-v);
+  let y=20;
+
+  currentData.forEach(d=>{
+    let line = `${d.category} | ${d.type} | ${format(convert(d.amount))}`;
+    doc.text(line,10,y);
+    y+=8;
   });
 
-  let labels=Object.keys(map).sort();
-
-  if(chart) chart.destroy();
-
-  chart=new Chart(trend,{
-    type:"line",
-    data:{
-      labels,
-      datasets:[{label:"Net",data:labels.map(l=>map[l])}]
-    }
-  });
+  doc.save("cashflow.pdf");
 }
 
 startApp();
