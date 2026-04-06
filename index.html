@@ -4,7 +4,7 @@
   <title>Cashflow Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- PDF LIB -->
+  <!-- PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
@@ -14,8 +14,9 @@
 <div id="auth" class="flex items-center justify-center h-screen">
   <div class="bg-[#1f2937] p-6 rounded w-80 text-center">
 
+    <!-- LOGO -->
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mx-auto mb-4 h-12">
+      class="mx-auto mb-5 h-12">
 
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
@@ -30,12 +31,14 @@
 <div id="app" class="hidden flex min-h-screen">
 
   <!-- SIDEBAR -->
-  <div class="w-64 bg-[#111827] p-5 hidden md:block">
+  <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col">
 
+    <!-- LOGO -->
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
-      class="mb-6 h-10">
+      class="mb-8 h-10">
 
-    <button onclick="logout()" class="w-full text-left p-2 hover:bg-red-500 rounded">
+    <button onclick="logout()"
+      class="mt-auto text-left p-2 hover:bg-red-500 rounded">
       Logout
     </button>
   </div>
@@ -43,13 +46,14 @@
   <!-- MAIN -->
   <div class="flex-1 p-6 space-y-6">
 
-    <!-- TOP -->
+    <!-- TOP BAR -->
     <div class="flex justify-between items-center">
       <h1 id="title" class="text-2xl font-bold"></h1>
 
       <div class="flex gap-2">
 
-        <select id="filter" onchange="loadData()" class="bg-[#1f2937] p-2 rounded">
+        <select id="filter" onchange="loadData()"
+          class="bg-[#1f2937] p-2 rounded">
           <option value="all">All</option>
           <option value="day">Today</option>
           <option value="week">7 Days</option>
@@ -57,7 +61,8 @@
           <option value="year">Year</option>
         </select>
 
-        <select id="currency" onchange="changeCurrency()" class="bg-[#1f2937] p-2 rounded">
+        <select id="currency" onchange="changeCurrency()"
+          class="bg-[#1f2937] p-2 rounded">
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
@@ -72,15 +77,22 @@
 
     <!-- STATS -->
     <div class="grid grid-cols-3 gap-4">
-      <div class="bg-[#1f2937] p-4 rounded">Balance<br><b id="balance"></b></div>
-      <div class="bg-[#1f2937] p-4 rounded">Income<br><b id="income"></b></div>
-      <div class="bg-[#1f2937] p-4 rounded">Expense<br><b id="expense"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">
+        Balance<br><b id="balance"></b>
+      </div>
+      <div class="bg-[#1f2937] p-4 rounded">
+        Income<br><b id="income"></b>
+      </div>
+      <div class="bg-[#1f2937] p-4 rounded">
+        Expense<br><b id="expense"></b>
+      </div>
     </div>
 
     <!-- FORM -->
-    <div class="bg-[#1f2937] p-4 rounded space-y-2">
+    <div class="bg-[#1f2937] p-4 rounded space-y-3">
 
-      <input id="amount" type="number" placeholder="Amount"
+      <input id="amount" type="number"
+        placeholder="Amount"
         class="w-full p-2 text-black rounded">
 
       <input id="dateInput" type="datetime-local"
@@ -101,14 +113,15 @@
         </select>
       </div>
 
-      <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
-        Save
+      <button onclick="addData()"
+        class="w-full bg-green-500 p-2 rounded hover:opacity-80">
+        Save Transaction
       </button>
     </div>
 
     <!-- LIST -->
     <div class="bg-[#1f2937] p-4 rounded">
-      <div id="list"></div>
+      <div id="list" class="space-y-2"></div>
     </div>
 
   </div>
@@ -204,18 +217,14 @@ function applyFilter(data){
 
     if(f==="day") return t.toDateString()===now.toDateString();
 
-    if(f==="week"){
-      return (now-t)/(1000*60*60*24)<=7;
-    }
+    if(f==="week") return (now-t)/(1000*60*60*24)<=7;
 
     if(f==="month"){
       return t.getMonth()===now.getMonth() &&
              t.getFullYear()===now.getFullYear();
     }
 
-    if(f==="year"){
-      return t.getFullYear()===now.getFullYear();
-    }
+    if(f==="year") return t.getFullYear()===now.getFullYear();
 
     return true;
   });
