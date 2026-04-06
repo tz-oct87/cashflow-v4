@@ -3,7 +3,6 @@
 <head>
   <title>NA2625 Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
@@ -101,12 +100,13 @@
         </select>
       </div>
 
-      <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
+      <button id="submitBtn" onclick="addData()"
+        class="w-full bg-green-500 p-2 rounded flex justify-center items-center gap-2">
         Submit
       </button>
     </div>
 
-    <!-- ADD AGAIN BUTTON -->
+    <!-- ADD AGAIN -->
     <div id="addAgainBox" class="hidden">
       <button onclick="showForm()" class="bg-green-500 px-4 py-2 rounded">
         + Add Another
@@ -127,6 +127,7 @@ const API="https://script.google.com/macros/s/AKfycbzFqkTgUqbKflvUB-VnB5oNXDr-9Z
 let rate=15500;
 let currentCurrency=localStorage.getItem("currency")||"IDR";
 let currentData=[];
+let isSubmitting=false;
 
 // LOGIN
 function login(){
@@ -134,7 +135,6 @@ function login(){
   startApp();
 }
 
-// LOGOUT
 function logout(){
   localStorage.clear();
   location.reload();
@@ -170,7 +170,6 @@ function format(n){
     :"$"+Math.round(n);
 }
 
-// CONVERT
 function convert(n){
   return currentCurrency==="IDR"?n:n/rate;
 }
@@ -182,8 +181,16 @@ function changeCurrency(){
   loadData();
 }
 
-// ADD
+// SUBMIT WITH SPINNER
 async function addData(){
+  if(isSubmitting) return;
+  isSubmitting=true;
+
+  submitBtn.innerHTML = `
+    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+    Saving...
+  `;
+
   let raw=Number(amount.value);
   let stored=currentCurrency==="USD"?raw*rate:raw;
 
@@ -200,6 +207,9 @@ async function addData(){
 
   formBox.classList.add("hidden");
   addAgainBox.classList.remove("hidden");
+
+  isSubmitting=false;
+  submitBtn.innerText="Submit";
 
   loadData();
 }
@@ -247,7 +257,7 @@ async function loadData(){
   insights(data);
 }
 
-// CALC
+// CALC + INSIGHTS (same as before)
 function calc(data){
   let t=0,i=0,e=0;
   data.forEach(d=>{
@@ -259,10 +269,8 @@ function calc(data){
   expense.innerText=format(e);
 }
 
-// INSIGHTS
 function insights(data){
   let catMap={}, total=0;
-
   data.forEach(d=>{
     if(d.type==="expense"){
       let v=convert(d.amount);
@@ -278,45 +286,41 @@ function insights(data){
   avgSpend.innerText=format(total/(data.length||1));
 }
 
-// PDF
-function exportPDF(){
+// PDF FIXED
+async function exportPDF(){
   const { jsPDF } = window.jspdf;
   const doc=new jsPDF();
 
-  let user=localStorage.getItem("email");
+  const img = new Image();
+  img.crossOrigin="Anonymous";
+  img.src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png";
 
-  doc.addImage("https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png","PNG",60,5,90,20);
+  img.onload = function(){
 
-  doc.setFontSize(14);
-  doc.text("FINANCIAL STATEMENT",105,35,null,null,"center");
+    doc.addImage(img,"PNG",60,5,90,20);
 
-  doc.setFontSize(10);
-  doc.text("User: "+user,10,45);
+    doc.text("FINANCIAL STATEMENT",105,35,null,null,"center");
+    doc.text("User: "+localStorage.getItem("email"),10,45);
 
-  let y=55;
+    let y=55;
 
-  doc.text("Date",10,y);
-  doc.text("Category",50,y);
-  doc.text("Type",110,y);
-  doc.text("Amount",160,y);
+    doc.text("Date",10,y);
+    doc.text("Category",50,y);
+    doc.text("Type",110,y);
+    doc.text("Amount",160,y);
 
-  y+=5;
+    y+=5;
 
-  currentData.forEach(d=>{
-    doc.text(new Date(d.date).toLocaleDateString(),10,y);
-    doc.text(d.category,50,y);
-    doc.text(d.type,110,y);
-    doc.text(format(convert(d.amount)),160,y);
-    y+=6;
-  });
+    currentData.forEach(d=>{
+      doc.text(new Date(d.date).toLocaleDateString(),10,y);
+      doc.text(d.category,50,y);
+      doc.text(d.type,110,y);
+      doc.text(format(convert(d.amount)),160,y);
+      y+=6;
+    });
 
-  y+=10;
-
-  doc.text("Balance: "+balance.innerText,10,y);
-  doc.text("Income: "+income.innerText,10,y+6);
-  doc.text("Expense: "+expense.innerText,10,y+12);
-
-  doc.save("NA2625-statement.pdf");
+    doc.save("NA2625-statement.pdf");
+  };
 }
 
 startApp();
