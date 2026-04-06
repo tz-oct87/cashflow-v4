@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V4.5</title>
+  <title>Cashflow Pro V5</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,12 +12,11 @@
 
   <!-- LOGIN -->
   <div id="auth" class="bg-[#1e293b] p-6 rounded-xl border border-gray-800">
-    <h2 class="text-lg font-semibold mb-4">Cashflow Login</h2>
+    <h2 class="text-lg font-semibold mb-4">Cashflow</h2>
     <input id="email" placeholder="Your name"
       class="w-full p-2 rounded text-black mb-3">
-    <button onclick="login()"
-      class="w-full bg-white text-black p-2 rounded">
-      Continue
+    <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
+      Enter
     </button>
   </div>
 
@@ -27,37 +26,38 @@
     <!-- HEADER -->
     <div class="flex justify-between items-center">
       <h1 id="title" class="text-lg font-semibold"></h1>
-      <select id="currency" onchange="changeCurrency()"
-        class="bg-[#1e293b] border border-gray-700 p-2 rounded text-sm">
-        <option value="IDR">IDR</option>
-        <option value="USD">USD</option>
-      </select>
+
+      <div class="flex gap-2 items-center">
+        <select id="currency" onchange="changeCurrency()"
+          class="bg-[#1e293b] border border-gray-700 p-2 rounded text-sm">
+          <option value="IDR">IDR</option>
+          <option value="USD">USD</option>
+        </select>
+
+        <button onclick="logout()" 
+          class="text-xs bg-red-500 px-2 py-1 rounded">
+          Logout
+        </button>
+      </div>
     </div>
 
     <!-- BALANCE -->
     <div class="bg-[#1e293b] p-4 rounded-xl border border-gray-800">
-      <div class="text-sm text-gray-400">Total Balance</div>
-      <div id="balance" class="text-2xl font-bold mt-1"></div>
+      <div class="text-sm text-gray-400">Balance</div>
+      <div id="balance" class="text-2xl font-bold"></div>
     </div>
 
     <!-- STATS -->
     <div class="grid grid-cols-3 gap-2 text-sm">
-      <div class="bg-[#1e293b] p-3 rounded">
-        Income<br><b id="income"></b>
-      </div>
-      <div class="bg-[#1e293b] p-3 rounded">
-        Expense<br><b id="expense"></b>
-      </div>
-      <div class="bg-[#1e293b] p-3 rounded">
-        Net<br><b id="net"></b>
-      </div>
+      <div class="bg-[#1e293b] p-3 rounded">Income<br><b id="income"></b></div>
+      <div class="bg-[#1e293b] p-3 rounded">Expense<br><b id="expense"></b></div>
+      <div class="bg-[#1e293b] p-3 rounded">Net<br><b id="net"></b></div>
     </div>
 
     <!-- FORM -->
     <div class="bg-[#1e293b] p-4 rounded-xl space-y-2">
       <input id="name" placeholder="Cashflow Name"
         class="w-full p-2 rounded text-black">
-
       <input id="amount" type="number" placeholder="Amount"
         class="w-full p-2 rounded text-black">
 
@@ -78,7 +78,7 @@
 
       <button onclick="addData()"
         class="w-full bg-green-400 text-black p-2 rounded">
-        Add Transaction
+        Save Transaction
       </button>
     </div>
 
@@ -94,12 +94,22 @@
 
 </div>
 
+<!-- DELETE MODAL -->
+<div id="confirmBox" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
+  <div class="bg-[#1e293b] p-6 rounded-xl text-center space-y-4">
+    <div>Delete this transaction?</div>
+    <div class="flex gap-2 justify-center">
+      <button onclick="confirmDelete()" class="bg-red-500 px-4 py-1 rounded">Yes</button>
+      <button onclick="closeConfirm()" class="bg-gray-500 px-4 py-1 rounded">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = "https://script.google.com/macros/s/AKfycbyBDvRCOUunIKsmhKL1k_kpHVC1778i6GVQct4-OM2B5oalyywjZfx-eUlPWkf9cvMo/exec";
 
-let editTarget = null;
-let chart;
-let isSubmitting = false;
+let chart, editTarget=null, deleteTarget=null;
+let isSubmitting=false;
 let currentCurrency = localStorage.getItem("currency") || "IDR";
 let rate = 15500;
 
@@ -107,6 +117,12 @@ let rate = 15500;
 function login(){
   localStorage.setItem("email", email.value);
   init();
+}
+
+// LOGOUT
+function logout(){
+  localStorage.removeItem("email");
+  location.reload();
 }
 
 // INIT
@@ -117,6 +133,7 @@ async function init(){
   currency.value = currentCurrency;
 
   await getRate();
+  setInterval(getRate, 3600000); // refresh every 1h
 
   auth.style.display="none";
   app.style.display="block";
@@ -127,12 +144,12 @@ async function init(){
 
 // LIVE RATE
 async function getRate(){
-  try {
+  try{
     const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
     const data = await res.json();
     rate = data.rates.IDR;
-  } catch(e){
-    console.log("Fallback rate used");
+  }catch(e){
+    console.log("rate fallback");
   }
 }
 
@@ -145,22 +162,22 @@ function changeCurrency(){
 
 // FORMAT
 function format(num){
-  return currentCurrency === "IDR"
-    ? "Rp " + num.toLocaleString("id-ID")
-    : "$ " + num.toLocaleString("en-US");
+  return currentCurrency==="IDR"
+    ? "Rp " + Math.round(num).toLocaleString("id-ID")
+    : "$" + Math.round(num).toLocaleString("en-US");
 }
 
 // CONVERT
-function convert(amount, from, to){
-  if(from === to) return amount;
-  if(from === "IDR" && to === "USD") return amount / rate;
-  if(from === "USD" && to === "IDR") return amount * rate;
+function convert(amount){
+  return currentCurrency==="IDR"
+    ? amount
+    : amount / rate;
 }
 
 // ADD / EDIT
 async function addData(){
   if(isSubmitting) return;
-  isSubmitting = true;
+  isSubmitting=true;
 
   const payload = {
     email: localStorage.getItem("email"),
@@ -172,46 +189,57 @@ async function addData(){
     action: editTarget ? "edit" : "add"
   };
 
-  await fetch(API, {
+  await fetch(API,{
     method:"POST",
-    body: JSON.stringify(payload)
+    body:JSON.stringify(payload)
   });
 
-  isSubmitting = false;
-  editTarget = null;
-
+  isSubmitting=false;
+  editTarget=null;
   loadData();
 }
 
-// DELETE
-async function del(date){
-  await fetch(API, {
+// DELETE FLOW
+function del(date){
+  deleteTarget=date;
+  confirmBox.classList.remove("hidden");
+}
+
+function closeConfirm(){
+  confirmBox.classList.add("hidden");
+  deleteTarget=null;
+}
+
+async function confirmDelete(){
+  await fetch(API,{
     method:"POST",
-    body: JSON.stringify({
+    body:JSON.stringify({
       action:"delete",
-      email: localStorage.getItem("email"),
-      date
+      email:localStorage.getItem("email"),
+      date:deleteTarget
     })
   });
 
+  closeConfirm();
   loadData();
 }
 
 // EDIT
 function edit(d){
-  name.value = d.name;
-  category.value = d.category;
-  amount.value = d.amount;
-  type.value = d.type;
-  editTarget = d.date;
+  name.value=d.name;
+  category.value=d.category;
+  amount.value=d.amount;
+  type.value=d.type;
+  editTarget=d.date;
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
 // LOAD
 async function loadData(){
-  const res = await fetch(API + "?email=" + localStorage.getItem("email"));
+  const res = await fetch(API+"?email="+localStorage.getItem("email"));
   const data = await res.json();
 
-  list.innerHTML = data.map(d => `
+  list.innerHTML = data.map(d=>`
     <div class="bg-[#1e293b] p-3 rounded flex justify-between">
       <div>
         <div>${d.category}</div>
@@ -221,7 +249,7 @@ async function loadData(){
       </div>
       <div class="text-right">
         <div class="${d.type==='income'?'text-green-400':'text-red-400'}">
-          ${d.type==='income'?'+':'-'} ${format(convert(d.amount,"IDR",currentCurrency))}
+          ${d.type==='income'?'+':'-'} ${format(convert(d.amount))}
         </div>
         <div class="text-xs">
           <button onclick='edit(${JSON.stringify(d)})'>Edit</button> |
@@ -231,56 +259,56 @@ async function loadData(){
     </div>
   `).join("");
 
-  calcBalance(data);
-  renderTrend(data);
+  calc(data);
+  chartRender(data);
 }
 
-// BALANCE
-function calcBalance(data){
-  let total=0, inc=0, exp=0;
+// CALC
+function calc(data){
+  let total=0,inc=0,exp=0;
 
   data.forEach(d=>{
-    const val = convert(d.amount,"IDR",currentCurrency);
+    let v=convert(d.amount);
 
     if(d.type==="income"){
-      total+=val; inc+=val;
-    } else {
-      total-=val; exp+=val;
+      total+=v; inc+=v;
+    }else{
+      total-=v; exp+=v;
     }
   });
 
-  balance.innerText = format(total);
-  income.innerText = format(inc);
-  expense.innerText = format(exp);
-  net.innerText = format(total);
+  balance.innerText=format(total);
+  income.innerText=format(inc);
+  expense.innerText=format(exp);
+  net.innerText=format(total);
 }
 
-// TREND
-function renderTrend(data){
-  let incomeData={}, expenseData={};
+// CHART
+function chartRender(data){
+  let inc={},exp={};
 
   data.forEach(d=>{
     let day=d.date.split("T")[0];
-    let val=convert(d.amount,"IDR",currentCurrency);
+    let v=convert(d.amount);
 
     if(d.type==="income"){
-      incomeData[day]=(incomeData[day]||0)+val;
-    } else {
-      expenseData[day]=(expenseData[day]||0)+val;
+      inc[day]=(inc[day]||0)+v;
+    }else{
+      exp[day]=(exp[day]||0)+v;
     }
   });
 
-  const labels=[...new Set([...Object.keys(incomeData),...Object.keys(expenseData)])];
+  const labels=[...new Set([...Object.keys(inc),...Object.keys(exp)])];
 
   if(chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("trend"), {
+  chart=new Chart(trend,{
     type:"line",
     data:{
       labels,
       datasets:[
-        {label:"Income",data:labels.map(l=>incomeData[l]||0)},
-        {label:"Expense",data:labels.map(l=>expenseData[l]||0)}
+        {label:"Income",data:labels.map(l=>inc[l]||0)},
+        {label:"Expense",data:labels.map(l=>exp[l]||0)}
       ]
     }
   });
