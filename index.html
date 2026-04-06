@@ -1,14 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V7.1</title>
+  <title>Cashflow Pro V7.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="bg-[#0b1220] text-gray-200">
 
-<div class="flex min-h-screen">
+<!-- LOGIN -->
+<div id="auth" class="flex items-center justify-center h-screen">
+  <div class="bg-[#1f2937] p-6 rounded w-80">
+    <h2 class="mb-3 text-lg font-bold">Login</h2>
+    <input id="email" placeholder="Your name"
+      class="w-full p-2 text-black rounded mb-3">
+    <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
+      Enter
+    </button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden flex min-h-screen">
 
   <!-- SIDEBAR -->
   <div class="w-64 bg-[#111827] p-5 hidden md:block">
@@ -48,123 +61,138 @@
       <div class="bg-[#1f2937] p-4 rounded">Expense<br><b id="expense"></b></div>
     </div>
 
-    <!-- CONTENT -->
-    <div class="grid md:grid-cols-2 gap-6">
+    <!-- FORM -->
+    <div class="bg-[#1f2937] p-4 rounded space-y-2">
+      <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
+      <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
+      <input id="dateInput" type="datetime-local" class="w-full p-2 text-black rounded">
 
-      <!-- FORM -->
-      <div class="bg-[#1f2937] p-4 rounded space-y-2">
-        <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
-        <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
-        <input id="dateInput" type="datetime-local" class="w-full p-2 text-black rounded">
+      <div class="grid grid-cols-2 gap-2">
+        <select id="category" class="p-2 text-black rounded">
+          <option>Food</option>
+          <option>Gas</option>
+          <option>Bills</option>
+          <option>Salary</option>
+          <option>Other</option>
+        </select>
 
-        <div class="grid grid-cols-2 gap-2">
-          <select id="category" class="p-2 text-black rounded">
-            <option>Food</option>
-            <option>Gas</option>
-            <option>Bills</option>
-            <option>Salary</option>
-            <option>Other</option>
-          </select>
-
-          <select id="type" class="p-2 text-black rounded">
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
-        </div>
-
-        <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
-          Save
-        </button>
+        <select id="type" class="p-2 text-black rounded">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
       </div>
 
-      <!-- CHART -->
-      <div class="bg-[#1f2937] p-4 rounded">
-        <canvas id="trend"></canvas>
-      </div>
+      <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
+        Save
+      </button>
+    </div>
 
+    <!-- CHART -->
+    <div class="bg-[#1f2937] p-4 rounded">
+      <canvas id="trend"></canvas>
     </div>
 
     <!-- LIST -->
     <div class="bg-[#1f2937] p-4 rounded">
-      <div id="list" class="space-y-2"></div>
+      <div id="list"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
+const API="https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
 
-let rate = 15500;
-let currentCurrency = localStorage.getItem("currency") || "IDR";
+let rate=15500;
+let currentCurrency=localStorage.getItem("currency")||"IDR";
 let chart;
 
-// INIT
-async function init(){
-  title.innerText = localStorage.getItem("email");
+// LOGIN
+function login(){
+  localStorage.setItem("email", email.value);
+  startApp();
+}
 
-  currency.value = currentCurrency;
+// LOGOUT
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
 
-  let res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-  let data = await res.json();
-  rate = data.rates.IDR;
+// START APP
+async function startApp(){
+  let user=localStorage.getItem("email");
+
+  if(!user){
+    auth.style.display="flex";
+    app.style.display="none";
+    return;
+  }
+
+  auth.style.display="none";
+  app.style.display="flex";
+
+  title.innerText=user;
+  currency.value=currentCurrency;
+
+  let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+  let data=await res.json();
+  rate=data.rates.IDR;
 
   loadData();
 }
 
 // FORMAT
 function format(n){
-  return currentCurrency === "IDR"
-    ? "Rp " + Math.round(n).toLocaleString("id-ID")
-    : "$" + Math.round(n);
+  return currentCurrency==="IDR"
+    ?"Rp "+Math.round(n).toLocaleString("id-ID")
+    :"$"+Math.round(n);
 }
 
-// CONVERT (IDR BASE)
+// CONVERT FROM IDR BASE
 function convert(n){
-  return currentCurrency === "IDR" ? n : n / rate;
+  return currentCurrency==="IDR"?n:n/rate;
 }
 
 // CHANGE CURRENCY
 function changeCurrency(){
-  currentCurrency = currency.value;
-  localStorage.setItem("currency", currentCurrency);
+  currentCurrency=currency.value;
+  localStorage.setItem("currency",currentCurrency);
   loadData();
 }
 
 // ADD
 async function addData(){
-  let raw = Number(amount.value);
-  let stored = currentCurrency === "USD" ? raw * rate : raw;
+  let raw=Number(amount.value);
+  let stored=currentCurrency==="USD"?raw*rate:raw;
 
   await fetch(API,{
     method:"POST",
-    body: JSON.stringify({
-      email: localStorage.getItem("email"),
-      name: name.value,
-      category: category.value,
-      amount: stored,
-      type: type.value,
-      date: dateInput.value || new Date().toISOString(),
-      display: format(raw)
+    body:JSON.stringify({
+      email:localStorage.getItem("email"),
+      name:name.value,
+      category:category.value,
+      amount:stored,
+      type:type.value,
+      date:dateInput.value||new Date().toISOString()
     })
   });
 
   loadData();
 }
 
-// FILTER LOGIC
+// FILTER
 function applyFilter(data){
-  let f = filter.value;
-  let now = new Date();
+  let f=filter.value;
+  let now=new Date();
 
   return data.filter(d=>{
-    let t = new Date(d.date);
+    let t=new Date(d.date);
 
-    if(f==="day") return t.toDateString() === now.toDateString();
+    if(f==="day") return t.toDateString()===now.toDateString();
 
     if(f==="week"){
-      let diff = (now - t) / (1000*60*60*24);
-      return diff <= 7;
+      return (now-t)/(1000*60*60*24)<=7;
     }
 
     if(f==="month"){
@@ -182,82 +210,70 @@ function applyFilter(data){
 
 // LOAD
 async function loadData(){
-  let res = await fetch(API+"?email="+localStorage.getItem("email"));
-  let data = await res.json();
+  let res=await fetch(API+"?email="+localStorage.getItem("email"));
+  let data=await res.json();
 
-  data = applyFilter(data);
+  data=applyFilter(data);
 
-  // SORT NEWEST FIRST
-  data.sort((a,b)=> new Date(b.date) - new Date(a.date));
+  data.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-  list.innerHTML = data.map(d=>`
+  list.innerHTML=data.map(d=>`
     <div class="flex justify-between border-b border-gray-700 pb-2">
       <div>
         ${d.category}<br>
         <small>${new Date(d.date).toLocaleString()}</small>
       </div>
       <div class="${d.type==='income'?'text-green-400':'text-red-400'}">
-        ${d.display || format(convert(d.amount))}
+        ${d.type==='income'?'+':'-'} ${format(convert(d.amount))}
       </div>
     </div>
   `).join("");
 
   calc(data);
-  drawChart(data);
+  chartRender(data);
 }
 
 // CALC
 function calc(data){
-  let total=0,inc=0,exp=0;
+  let t=0,i=0,e=0;
 
   data.forEach(d=>{
-    let v = convert(d.amount);
+    let v=convert(d.amount);
 
-    if(d.type==="income"){
-      total+=v; inc+=v;
-    } else {
-      total-=v; exp+=v;
-    }
+    if(d.type==="income"){t+=v;i+=v;}
+    else{t-=v;e+=v;}
   });
 
-  balance.innerText = format(total);
-  income.innerText = format(inc);
-  expense.innerText = format(exp);
+  balance.innerText=format(t);
+  income.innerText=format(i);
+  expense.innerText=format(e);
 }
 
 // CHART
-function drawChart(data){
+function chartRender(data){
   let map={};
 
   data.forEach(d=>{
-    let day = d.date.split("T")[0];
-    let v = convert(d.amount);
+    let day=d.date.split("T")[0];
+    let v=convert(d.amount);
 
-    map[day] = (map[day] || 0) + (d.type==="income"?v:-v);
+    map[day]=(map[day]||0)+(d.type==="income"?v:-v);
   });
 
-  let labels = Object.keys(map).sort();
+  let labels=Object.keys(map).sort();
 
   if(chart) chart.destroy();
 
-  chart = new Chart(trend,{
+  chart=new Chart(trend,{
     type:"line",
     data:{
       labels,
-      datasets:[{
-        label:"Net",
-        data:labels.map(l=>map[l])
-      }]
+      datasets:[{label:"Net",data:labels.map(l=>map[l])}]
     }
   });
 }
 
-function logout(){
-  localStorage.clear();
-  location.reload();
-}
-
-init();
+startApp();
 </script>
 
 </body>
