@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V7</title>
+  <title>Cashflow Pro V7.1</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -13,27 +13,23 @@
   <!-- SIDEBAR -->
   <div class="w-64 bg-[#111827] p-5 hidden md:block">
     <h2 class="text-xl font-bold mb-6">Cashflow</h2>
-
-    <div class="space-y-2 text-sm">
-      <div class="p-2 bg-[#1f2937] rounded">Dashboard</div>
-      <button onclick="logout()" class="p-2 w-full text-left hover:bg-red-500 rounded">
-        Logout
-      </button>
-    </div>
+    <button onclick="logout()" class="w-full text-left p-2 hover:bg-red-500 rounded">
+      Logout
+    </button>
   </div>
 
   <!-- MAIN -->
   <div class="flex-1 p-6 space-y-6">
 
-    <!-- TOP BAR -->
-    <div class="flex justify-between items-center">
+    <!-- TOP -->
+    <div class="flex justify-between">
       <h1 id="title" class="text-2xl font-bold"></h1>
 
-      <div class="flex gap-3">
+      <div class="flex gap-2">
         <select id="filter" onchange="loadData()" class="bg-[#1f2937] p-2 rounded">
           <option value="all">All</option>
           <option value="day">Today</option>
-          <option value="week">Week</option>
+          <option value="week">7 Days</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
         </select>
@@ -45,24 +41,14 @@
       </div>
     </div>
 
-    <!-- GRID -->
-    <div class="grid md:grid-cols-3 gap-4">
-
-      <div class="bg-[#1f2937] p-4 rounded">
-        Balance<br><b id="balance"></b>
-      </div>
-
-      <div class="bg-[#1f2937] p-4 rounded">
-        Income<br><b id="income"></b>
-      </div>
-
-      <div class="bg-[#1f2937] p-4 rounded">
-        Expense<br><b id="expense"></b>
-      </div>
-
+    <!-- STATS -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-[#1f2937] p-4 rounded">Balance<br><b id="balance"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Income<br><b id="income"></b></div>
+      <div class="bg-[#1f2937] p-4 rounded">Expense<br><b id="expense"></b></div>
     </div>
 
-    <!-- MAIN CONTENT -->
+    <!-- CONTENT -->
     <div class="grid md:grid-cols-2 gap-6">
 
       <!-- FORM -->
@@ -86,9 +72,8 @@
           </select>
         </div>
 
-        <button id="saveBtn" onclick="addData()"
-          class="w-full bg-green-500 p-2 rounded hover:opacity-80">
-          Save Transaction
+        <button onclick="addData()" class="w-full bg-green-500 p-2 rounded">
+          Save
         </button>
       </div>
 
@@ -101,124 +86,168 @@
 
     <!-- LIST -->
     <div class="bg-[#1f2937] p-4 rounded">
-      <h3 class="mb-3">Transactions</h3>
-      <div id="list" class="space-y-2 max-h-[400px] overflow-auto"></div>
+      <div id="list" class="space-y-2"></div>
     </div>
 
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast" class="hidden fixed bottom-5 right-5 bg-green-500 px-4 py-2 rounded"></div>
-
 <script>
-const API="https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
+const API = "https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
 
-let rate=15500,currentCurrency="IDR";
-let isSubmitting=false,chart;
+let rate = 15500;
+let currentCurrency = localStorage.getItem("currency") || "IDR";
+let chart;
 
 // INIT
 async function init(){
-  title.innerText=localStorage.getItem("email");
+  title.innerText = localStorage.getItem("email");
 
-  let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-  let d=await res.json();
-  rate=d.rates.IDR;
+  currency.value = currentCurrency;
+
+  let res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+  let data = await res.json();
+  rate = data.rates.IDR;
 
   loadData();
-}
-
-// TOAST
-function showToast(msg){
-  toast.innerText=msg;
-  toast.classList.remove("hidden");
-  setTimeout(()=>toast.classList.add("hidden"),2000);
 }
 
 // FORMAT
 function format(n){
-  return currentCurrency==="IDR"
-    ?"Rp "+Math.round(n).toLocaleString("id-ID")
-    :"$"+Math.round(n);
+  return currentCurrency === "IDR"
+    ? "Rp " + Math.round(n).toLocaleString("id-ID")
+    : "$" + Math.round(n);
 }
 
-function convert(n){return currentCurrency==="IDR"?n:n/rate;}
+// CONVERT (IDR BASE)
+function convert(n){
+  return currentCurrency === "IDR" ? n : n / rate;
+}
+
+// CHANGE CURRENCY
+function changeCurrency(){
+  currentCurrency = currency.value;
+  localStorage.setItem("currency", currentCurrency);
+  loadData();
+}
 
 // ADD
 async function addData(){
-  if(isSubmitting) return;
-  isSubmitting=true;
-  saveBtn.innerText="Saving...";
-
-  let raw=Number(amount.value);
-  let stored=currentCurrency==="USD"?raw*rate:raw;
+  let raw = Number(amount.value);
+  let stored = currentCurrency === "USD" ? raw * rate : raw;
 
   await fetch(API,{
     method:"POST",
-    body:JSON.stringify({
-      email:localStorage.getItem("email"),
-      name:name.value,
-      category:category.value,
-      amount:stored,
-      type:type.value,
-      date:dateInput.value||new Date().toISOString(),
-      display:format(raw)
+    body: JSON.stringify({
+      email: localStorage.getItem("email"),
+      name: name.value,
+      category: category.value,
+      amount: stored,
+      type: type.value,
+      date: dateInput.value || new Date().toISOString(),
+      display: format(raw)
     })
   });
-
-  showToast("Saved!");
-  isSubmitting=false;
-  saveBtn.innerText="Save Transaction";
 
   loadData();
 }
 
+// FILTER LOGIC
+function applyFilter(data){
+  let f = filter.value;
+  let now = new Date();
+
+  return data.filter(d=>{
+    let t = new Date(d.date);
+
+    if(f==="day") return t.toDateString() === now.toDateString();
+
+    if(f==="week"){
+      let diff = (now - t) / (1000*60*60*24);
+      return diff <= 7;
+    }
+
+    if(f==="month"){
+      return t.getMonth()===now.getMonth() &&
+             t.getFullYear()===now.getFullYear();
+    }
+
+    if(f==="year"){
+      return t.getFullYear()===now.getFullYear();
+    }
+
+    return true;
+  });
+}
+
 // LOAD
 async function loadData(){
-  let res=await fetch(API+"?email="+localStorage.getItem("email"));
-  let data=await res.json();
+  let res = await fetch(API+"?email="+localStorage.getItem("email"));
+  let data = await res.json();
 
-  list.innerHTML=data.map(d=>`
-    <div class="flex justify-between border-b border-gray-700 pb-1">
-      <div>${d.category}<br><small>${new Date(d.date).toLocaleString()}</small></div>
-      <div>${d.display}</div>
+  data = applyFilter(data);
+
+  // SORT NEWEST FIRST
+  data.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  list.innerHTML = data.map(d=>`
+    <div class="flex justify-between border-b border-gray-700 pb-2">
+      <div>
+        ${d.category}<br>
+        <small>${new Date(d.date).toLocaleString()}</small>
+      </div>
+      <div class="${d.type==='income'?'text-green-400':'text-red-400'}">
+        ${d.display || format(convert(d.amount))}
+      </div>
     </div>
   `).join("");
 
   calc(data);
-  renderChart(data);
+  drawChart(data);
 }
 
 // CALC
 function calc(data){
-  let t=0,i=0,e=0;
+  let total=0,inc=0,exp=0;
+
   data.forEach(d=>{
-    let v=convert(d.amount);
-    if(d.type==="income"){t+=v;i+=v;} else {t-=v;e+=v;}
+    let v = convert(d.amount);
+
+    if(d.type==="income"){
+      total+=v; inc+=v;
+    } else {
+      total-=v; exp+=v;
+    }
   });
-  balance.innerText=format(t);
-  income.innerText=format(i);
-  expense.innerText=format(e);
+
+  balance.innerText = format(total);
+  income.innerText = format(inc);
+  expense.innerText = format(exp);
 }
 
 // CHART
-function renderChart(data){
+function drawChart(data){
   let map={};
 
   data.forEach(d=>{
-    let day=d.date.split("T")[0];
-    map[day]=(map[day]||0)+(d.type==="income"?convert(d.amount):-convert(d.amount));
+    let day = d.date.split("T")[0];
+    let v = convert(d.amount);
+
+    map[day] = (map[day] || 0) + (d.type==="income"?v:-v);
   });
 
-  let labels=Object.keys(map);
+  let labels = Object.keys(map).sort();
 
   if(chart) chart.destroy();
 
-  chart=new Chart(trend,{
+  chart = new Chart(trend,{
     type:"line",
     data:{
       labels,
-      datasets:[{data:Object.values(map)}]
+      datasets:[{
+        label:"Net",
+        data:labels.map(l=>map[l])
+      }]
     }
   });
 }
