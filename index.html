@@ -29,7 +29,6 @@
 
   <!-- SIDEBAR -->
   <div class="w-64 bg-[#111827] p-5 hidden md:flex flex-col items-center">
-
     <img src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png"
       class="mb-8 w-full max-h-24 object-contain">
 
@@ -181,15 +180,24 @@ function changeCurrency(){
   loadData();
 }
 
-// SUBMIT WITH SPINNER
+// SUBMIT FIXED
 async function addData(){
   if(isSubmitting) return;
   isSubmitting=true;
 
+  // spinner instantly
   submitBtn.innerHTML = `
-    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-    Saving...
+    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
   `;
+
+  // force render
+  await new Promise(r => setTimeout(r, 50));
+
+  // hide form immediately
+  formBox.classList.add("hidden");
+
+  // fake delay (UX)
+  await new Promise(r => setTimeout(r, 3000));
 
   let raw=Number(amount.value);
   let stored=currentCurrency==="USD"?raw*rate:raw;
@@ -205,7 +213,6 @@ async function addData(){
     })
   });
 
-  formBox.classList.add("hidden");
   addAgainBox.classList.remove("hidden");
 
   isSubmitting=false;
@@ -219,24 +226,21 @@ function showForm(){
   addAgainBox.classList.add("hidden");
 }
 
-// FILTER
+// FILTER + LOAD (same)
 function applyFilter(data){
   let f=filter.value;
   let now=new Date();
 
   return data.filter(d=>{
     let t=new Date(d.date);
-
     if(f==="day") return t.toDateString()===now.toDateString();
     if(f==="week") return (now-t)/(1000*60*60*24)<=7;
     if(f==="month") return t.getMonth()===now.getMonth() && t.getFullYear()===now.getFullYear();
     if(f==="year") return t.getFullYear()===now.getFullYear();
-
     return true;
   });
 }
 
-// LOAD
 async function loadData(){
   let res=await fetch(API+"?email="+localStorage.getItem("email"));
   let data=await res.json();
@@ -257,7 +261,7 @@ async function loadData(){
   insights(data);
 }
 
-// CALC + INSIGHTS (same as before)
+// CALC + INSIGHTS
 function calc(data){
   let t=0,i=0,e=0;
   data.forEach(d=>{
@@ -286,41 +290,35 @@ function insights(data){
   avgSpend.innerText=format(total/(data.length||1));
 }
 
-// PDF FIXED
-async function exportPDF(){
+// PDF FIXED SIMPLE
+function exportPDF(){
   const { jsPDF } = window.jspdf;
   const doc=new jsPDF();
 
-  const img = new Image();
-  img.crossOrigin="Anonymous";
-  img.src="https://tactykz.com/wp-content/uploads/2026/03/NA2625-CR.png";
+  doc.setFontSize(14);
+  doc.text("NA2625 FINANCIAL STATEMENT",105,20,null,null,"center");
 
-  img.onload = function(){
+  doc.setFontSize(10);
+  doc.text("User: "+localStorage.getItem("email"),10,30);
 
-    doc.addImage(img,"PNG",60,5,90,20);
+  let y=40;
 
-    doc.text("FINANCIAL STATEMENT",105,35,null,null,"center");
-    doc.text("User: "+localStorage.getItem("email"),10,45);
+  doc.text("Date",10,y);
+  doc.text("Category",50,y);
+  doc.text("Type",110,y);
+  doc.text("Amount",160,y);
 
-    let y=55;
+  y+=5;
 
-    doc.text("Date",10,y);
-    doc.text("Category",50,y);
-    doc.text("Type",110,y);
-    doc.text("Amount",160,y);
+  currentData.forEach(d=>{
+    doc.text(new Date(d.date).toLocaleDateString(),10,y);
+    doc.text(d.category,50,y);
+    doc.text(d.type,110,y);
+    doc.text(format(convert(d.amount)),160,y);
+    y+=6;
+  });
 
-    y+=5;
-
-    currentData.forEach(d=>{
-      doc.text(new Date(d.date).toLocaleDateString(),10,y);
-      doc.text(d.category,50,y);
-      doc.text(d.type,110,y);
-      doc.text(format(convert(d.amount)),160,y);
-      y+=6;
-    });
-
-    doc.save("NA2625-statement.pdf");
-  };
+  doc.save("NA2625-statement.pdf");
 }
 
 startApp();
