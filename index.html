@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cashflow Pro V5.1</title>
+  <title>Cashflow Pro V6</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="bg-[#0f172a] text-gray-200">
 
-<div class="max-w-md mx-auto p-4 space-y-4">
+<div class="max-w-5xl mx-auto p-6 space-y-6">
 
   <!-- LOGIN -->
-  <div id="auth" class="bg-[#1e293b] p-6 rounded-xl">
+  <div id="auth" class="bg-[#1e293b] p-6 rounded-xl max-w-sm mx-auto">
     <input id="email" placeholder="Your name"
       class="w-full p-2 text-black rounded mb-3">
     <button onclick="login()" class="w-full bg-white text-black p-2 rounded">
@@ -20,186 +20,249 @@
   </div>
 
   <!-- APP -->
-  <div id="app" class="hidden space-y-4">
+  <div id="app" class="hidden space-y-6">
 
     <!-- HEADER -->
     <div class="flex justify-between items-center">
-      <h1 id="title"></h1>
+      <h1 id="title" class="text-2xl font-bold"></h1>
 
-      <div class="flex gap-2">
-        <select id="currency" onchange="changeCurrency()"
-          class="bg-[#1e293b] p-2 rounded">
+      <div class="flex gap-3">
+        <select id="filter" onchange="loadData()" class="bg-[#1e293b] p-2 rounded">
+          <option value="all">All</option>
+          <option value="day">Today</option>
+          <option value="week">Week</option>
+          <option value="month">Month</option>
+          <option value="year">Year</option>
+        </select>
+
+        <select id="currency" onchange="changeCurrency()" class="bg-[#1e293b] p-2 rounded">
           <option value="IDR">IDR</option>
           <option value="USD">USD</option>
         </select>
 
-        <button onclick="logout()" class="bg-red-500 px-2 rounded text-xs">
-          Logout
-        </button>
+        <button onclick="logout()" class="bg-red-500 px-3 rounded">Logout</button>
       </div>
     </div>
 
-    <!-- BALANCE -->
-    <div class="bg-[#1e293b] p-4 rounded">
-      Balance: <b id="balance"></b>
-    </div>
+    <!-- GRID -->
+    <div class="grid md:grid-cols-2 gap-6">
 
-    <!-- STATS -->
-    <div class="grid grid-cols-3 gap-2">
-      <div>Income<br><b id="income"></b></div>
-      <div>Expense<br><b id="expense"></b></div>
-      <div>Net<br><b id="net"></b></div>
-    </div>
+      <!-- LEFT -->
+      <div class="space-y-4">
 
-    <!-- FORM -->
-    <div class="bg-[#1e293b] p-3 rounded space-y-2">
-      <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
-      <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
+        <!-- BALANCE -->
+        <div class="bg-[#1e293b] p-4 rounded-xl">
+          <div>Balance</div>
+          <div id="balance" class="text-2xl font-bold"></div>
+        </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <select id="category" class="p-2 text-black rounded">
-          <option>Food</option>
-          <option>Gas</option>
-          <option>Bills</option>
-          <option>Salary</option>
-          <option>Other</option>
-        </select>
+        <!-- STATS -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="bg-[#1e293b] p-3 rounded">Income<br><b id="income"></b></div>
+          <div class="bg-[#1e293b] p-3 rounded">Expense<br><b id="expense"></b></div>
+          <div class="bg-[#1e293b] p-3 rounded">Net<br><b id="net"></b></div>
+        </div>
 
-        <select id="type" class="p-2 text-black rounded">
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
+        <!-- FORM -->
+        <div class="bg-[#1e293b] p-4 rounded-xl space-y-2">
+          <input id="name" placeholder="Name" class="w-full p-2 text-black rounded">
+          <input id="amount" type="number" placeholder="Amount" class="w-full p-2 text-black rounded">
+          
+          <input id="dateInput" type="datetime-local"
+            class="w-full p-2 text-black rounded">
+
+          <div class="grid grid-cols-2 gap-2">
+            <select id="category" class="p-2 text-black rounded">
+              <option>Food</option>
+              <option>Gas</option>
+              <option>Bills</option>
+              <option>Salary</option>
+              <option>Other</option>
+            </select>
+
+            <select id="type" class="p-2 text-black rounded">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+
+          <button onclick="addData()" class="w-full bg-green-400 p-2 rounded">
+            Save
+          </button>
+        </div>
+
       </div>
 
-      <button onclick="addData()" class="w-full bg-green-400 p-2 rounded">
-        Save
-      </button>
+      <!-- RIGHT -->
+      <div class="space-y-4">
+
+        <!-- CHART -->
+        <div class="bg-[#1e293b] p-4 rounded-xl">
+          <canvas id="trend"></canvas>
+        </div>
+
+        <!-- LIST -->
+        <div id="list" class="space-y-2 max-h-[400px] overflow-auto"></div>
+
+      </div>
+
     </div>
 
-    <!-- CHART -->
-    <canvas id="trend"></canvas>
+  </div>
+</div>
 
-    <!-- LIST -->
-    <div id="list"></div>
+<!-- EDIT MODAL -->
+<div id="editModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
+  <div class="bg-[#1e293b] p-6 rounded-xl space-y-2 w-80">
+    <input id="editName" class="w-full p-2 text-black rounded">
+    <input id="editAmount" type="number" class="w-full p-2 text-black rounded">
+    <input id="editDate" type="datetime-local" class="w-full p-2 text-black rounded">
 
+    <button onclick="saveEdit()" class="bg-green-400 w-full p-2 rounded">Save</button>
+    <button onclick="closeEdit()" class="bg-gray-500 w-full p-2 rounded">Cancel</button>
   </div>
 </div>
 
 <!-- DELETE MODAL -->
 <div id="confirmBox" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center">
   <div class="bg-[#1e293b] p-6 rounded text-center">
-    <p>Delete this transaction?</p>
-    <button onclick="confirmDelete()" class="bg-red-500 px-3 py-1 mt-2">Yes</button>
-    <button onclick="closeConfirm()" class="bg-gray-500 px-3 py-1 mt-2">Cancel</button>
+    Delete?
+    <button onclick="confirmDelete()" class="bg-red-500 px-3 ml-2">Yes</button>
+    <button onclick="closeConfirm()" class="bg-gray-500 px-3 ml-2">Cancel</button>
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
+const API="https://script.google.com/macros/s/AKfycbzxKxarwVTitY64I5fQWkMZ-ru7giI5mlMynLj0nRjysegRyaV2vjB526T5PPvh2tjK/exec";
 
-let currentCurrency = localStorage.getItem("currency") || "IDR";
-let rate = 15500;
-let isSubmitting = false;
-let editTarget = null;
-let deleteTarget = null;
-let chart;
+let rate=15500,currentCurrency="IDR";
+let editTarget=null,deleteTarget=null,chart;
 
 // LOGIN
-function login(){
-  localStorage.setItem("email", email.value);
-  init();
-}
-
-function logout(){
-  localStorage.removeItem("email");
-  location.reload();
-}
+function login(){localStorage.setItem("email",email.value);init();}
+function logout(){localStorage.clear();location.reload();}
 
 // INIT
 async function init(){
-  const user = localStorage.getItem("email");
-  if(!user) return;
+  if(!localStorage.getItem("email"))return;
+  currency.value=currentCurrency;
 
-  currency.value = currentCurrency;
-
-  await getRate();
-  setInterval(getRate, 3600000);
+  let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+  let d=await res.json();
+  rate=d.rates.IDR;
 
   auth.style.display="none";
   app.style.display="block";
-  title.innerText = user;
+  title.innerText=localStorage.getItem("email");
 
   loadData();
-}
-
-// LIVE RATE
-async function getRate(){
-  try{
-    const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-    const data = await res.json();
-    rate = data.rates.IDR;
-  }catch(e){}
 }
 
 // FORMAT
-function format(num){
+function format(n){
   return currentCurrency==="IDR"
-    ? "Rp " + Math.round(num).toLocaleString("id-ID")
-    : "$" + Math.round(num).toLocaleString("en-US");
+    ?"Rp "+Math.round(n).toLocaleString("id-ID")
+    :"$"+Math.round(n);
 }
 
-// CONVERT FROM IDR BASE
-function convert(amount){
-  return currentCurrency==="IDR"
-    ? amount
-    : amount / rate;
-}
-
-// CHANGE CURRENCY
-function changeCurrency(){
-  currentCurrency = currency.value;
-  localStorage.setItem("currency", currentCurrency);
-  loadData();
-}
+function convert(n){return currentCurrency==="IDR"?n:n/rate;}
 
 // ADD
 async function addData(){
-  if(isSubmitting) return;
-  isSubmitting = true;
+  let raw=Number(amount.value);
+  let stored=currentCurrency==="USD"?raw*rate:raw;
+  let date=dateInput.value||new Date().toISOString();
 
-  let raw = Number(amount.value);
+  await fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      email:localStorage.getItem("email"),
+      name:name.value,
+      category:category.value,
+      amount:stored,
+      type:type.value,
+      date,
+      display:format(raw)
+    })
+  });
 
-  let stored = currentCurrency==="USD"
-    ? raw * rate
-    : raw;
-
-  const payload = {
-    email: localStorage.getItem("email"),
-    name: name.value,
-    category: category.value,
-    amount: stored,
-    type: type.value,
-    date: editTarget || new Date().toISOString(),
-    display: format(raw),
-    action: editTarget ? "edit" : "add"
-  };
-
-  await fetch(API,{method:"POST",body:JSON.stringify(payload)});
-
-  isSubmitting = false;
-  editTarget = null;
   loadData();
 }
 
-// DELETE FLOW
-function del(date){
-  deleteTarget = date;
-  confirmBox.classList.remove("hidden");
+// FILTER
+function filterData(data){
+  let f=filter.value;
+  let now=new Date();
+
+  return data.filter(d=>{
+    let t=new Date(d.date);
+
+    if(f==="day") return t.toDateString()===now.toDateString();
+    if(f==="week") return (now-t)<=7*86400000;
+    if(f==="month") return t.getMonth()===now.getMonth();
+    if(f==="year") return t.getFullYear()===now.getFullYear();
+
+    return true;
+  });
 }
 
-function closeConfirm(){
-  confirmBox.classList.add("hidden");
+// LOAD
+async function loadData(){
+  let res=await fetch(API+"?email="+localStorage.getItem("email"));
+  let data=await res.json();
+  data=filterData(data);
+
+  list.innerHTML=data.map(d=>`
+    <div class="bg-[#1e293b] p-2 rounded flex justify-between">
+      <div>${d.category}<br><small>${new Date(d.date).toLocaleString()}</small></div>
+      <div>
+        ${d.display}
+        <button onclick='openEdit(${JSON.stringify(d)})'>Edit</button>
+        <button onclick='del("${d.date}")'>Del</button>
+      </div>
+    </div>
+  `).join("");
+
+  calc(data);
+  chartRender(data);
 }
+
+// EDIT MODAL
+function openEdit(d){
+  editTarget=d;
+  editName.value=d.name;
+  editAmount.value=d.amount;
+  editDate.value=d.date.slice(0,16);
+  editModal.classList.remove("hidden");
+}
+
+function closeEdit(){editModal.classList.add("hidden");}
+
+async function saveEdit(){
+  let raw=Number(editAmount.value);
+  let stored=currentCurrency==="USD"?raw*rate:raw;
+
+  await fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"edit",
+      email:localStorage.getItem("email"),
+      name:editName.value,
+      category:editTarget.category,
+      amount:stored,
+      type:editTarget.type,
+      date:editTarget.date,
+      display:format(raw)
+    })
+  });
+
+  closeEdit();
+  loadData();
+}
+
+// DELETE
+function del(d){deleteTarget=d;confirmBox.classList.remove("hidden");}
+function closeConfirm(){confirmBox.classList.add("hidden");}
 
 async function confirmDelete(){
   await fetch(API,{
@@ -210,77 +273,36 @@ async function confirmDelete(){
       date:deleteTarget
     })
   });
-
-  closeConfirm();
-  loadData();
-}
-
-// EDIT
-function edit(d){
-  name.value = d.name;
-  category.value = d.category;
-  amount.value = d.amount;
-  type.value = d.type;
-  editTarget = d.date;
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-// LOAD
-async function loadData(){
-  const res = await fetch(API+"?email="+localStorage.getItem("email"));
-  const data = await res.json();
-
-  list.innerHTML = data.map(d=>`
-    <div class="bg-[#1e293b] p-2 rounded flex justify-between">
-      <div>
-        ${d.category}<br>
-        <small>${new Date(d.date).toLocaleString()}</small>
-      </div>
-      <div>
-        ${d.display || format(convert(d.amount))}<br>
-        <button onclick='edit(${JSON.stringify(d)})'>Edit</button>
-        <button onclick='del("${d.date}")'>Delete</button>
-      </div>
-    </div>
-  `).join("");
-
-  calc(data);
-  renderChart(data);
+  closeConfirm();loadData();
 }
 
 // CALC
 function calc(data){
-  let total=0,inc=0,exp=0;
-
+  let t=0,i=0,e=0;
   data.forEach(d=>{
     let v=convert(d.amount);
-
-    if(d.type==="income"){total+=v;inc+=v;}
-    else{total-=v;exp+=v;}
+    if(d.type==="income"){t+=v;i+=v;} else {t-=v;e+=v;}
   });
-
-  balance.innerText=format(total);
-  income.innerText=format(inc);
-  expense.innerText=format(exp);
-  net.innerText=format(total);
+  balance.innerText=format(t);
+  income.innerText=format(i);
+  expense.innerText=format(e);
+  net.innerText=format(t);
 }
 
 // CHART
-function renderChart(data){
+function chartRender(data){
   let inc={},exp={};
 
   data.forEach(d=>{
     let day=d.date.split("T")[0];
     let v=convert(d.amount);
-
     if(d.type==="income") inc[day]=(inc[day]||0)+v;
     else exp[day]=(exp[day]||0)+v;
   });
 
-  const labels=[...new Set([...Object.keys(inc),...Object.keys(exp)])];
+  let labels=[...new Set([...Object.keys(inc),...Object.keys(exp)])];
 
   if(chart) chart.destroy();
-
   chart=new Chart(trend,{
     type:"line",
     data:{
